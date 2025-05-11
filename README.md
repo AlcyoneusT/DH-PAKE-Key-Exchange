@@ -1,156 +1,170 @@
-以下是更新后的 README 文件版本 1.3，包含了新的 Message Authentication Code (MAC) 功能。
 
 ---
 
-### 用户使用说明书
+# User Manual
 
-**程序名称**: 基于 Diffie-Hellman 和 PAKE 的密钥交换协议
+**Program Name**: Key Exchange Protocol Based on Diffie-Hellman and PAKE
 
-**作者**: Ziyuan Wang
+**Author**: Ziyuan Wang
 
-**版本**: 1.3
-
----
-
-### 1. 程序简介
-
-该程序实现了一个简单的 **Diffie-Hellman 密钥交换协议**，并进一步扩展为 **密码认证密钥交换（PAKE）协议**。在版本 1.3 中，还加入了 **消息认证码（MAC）** 功能，以确保消息在传输过程中的完整性和真实性。通过该程序，用户可以安全地在不安全的网络环境中生成共享密钥，并使用预先共享的密码对密钥进行认证，同时防止消息被篡改。
+**Version**: 2.0
 
 ---
 
-### 2. 系统要求
+## 1. Program Overview
 
-- **Python 版本**: 3.x
-- **所需库**: `hashlib` （Python 内置库）
-
----
-
-### 3. 程序结构
-
-程序主要分为以下几个部分：
-
-1. **Diffie-Hellman 密钥交换**: 生成共享密钥。
-2. **密码认证密钥交换（PAKE）**: 基于密码进一步认证共享密钥。
-3. **消息认证码（MAC）**: 确保消息在传输过程中未被篡改。
+This program implements a basic **Diffie-Hellman key exchange protocol**, enhanced with **Password-Authenticated Key Exchange (PAKE)** functionality.
+In Version 2.0, the program further introduces a **cryptographically secure random salt** for password hashing and replaces simple hashing with **HMAC-SHA256** for generating **Message Authentication Codes (MACs)**.
+Users can securely establish a shared secret over insecure networks, authenticate it using a password, and protect message integrity against tampering.
 
 ---
 
-### 4. 运行步骤
+## 2. System Requirements
 
-#### 1. 克隆或下载程序
+* **Python Version**: 3.x
+* **Required Libraries**:
 
-将程序文件下载到你的本地计算机，并确保 Python 环境已经正确配置。
+  * `hashlib` (standard library)
+  * `hmac` (standard library)
+  * `os` (standard library)
+  * `random` (standard library)
 
-#### 2. 运行程序
+---
 
-在终端或命令行界面中，导航到保存程序的目录，然后运行以下命令：
+## 3. Program Structure
+
+The program consists of the following components:
+
+1. **Diffie-Hellman Key Exchange**: Establishes an initial shared secret between two parties.
+2. **Password-Authenticated Key Exchange (PAKE)**: Strengthens the shared secret using a password and a random salt.
+3. **Message Authentication Code (MAC)**: Ensures integrity and authenticity of transmitted messages using HMAC-SHA256.
+
+---
+
+## 4. How to Run the Program
+
+### Step 1: Download or Clone the Program
+
+Save the Python script onto your local machine. Ensure your environment is set up with Python 3.x.
+
+### Step 2: Execute the Program
+
+Navigate to the program’s directory and run the script:
 
 ```bash
 python your_program_name.py
 ```
 
-（请将 `your_program_name.py` 替换为实际的程序文件名。）
+(Replace `your_program_name.py` with the actual filename.)
 
-#### 3. 输入共享密码
+### Step 3: Shared Password Handling
 
-程序启动后，终端会提示你输入共享密码：
+At runtime, the program uses a predefined shared password within the script.
+(Optional: You can modify the code to accept user input for the password if needed.)
 
-```plaintext
-Please enter the shared password:
-```
+### Step 4: View the Results
 
-请根据提示输入双方预先共享的密码。此密码将用于在密码认证密钥交换（PAKE）中生成最终的认证密钥。
+Upon successful execution, the program will output:
 
-#### 4. 查看结果
+1. **Shared Secret**: The Diffie-Hellman derived shared secret.
+2. **Random Salt**: A newly generated salt used during PAKE.
+3. **Final Authenticated Secret**: A hash derived from the shared secret and password hash.
+4. **Generated MAC**: The HMAC-SHA256 MAC for a transmitted message.
+5. **Message Verification Result**: Confirming the message has not been tampered with.
 
-程序会生成并输出以下信息：
-
-1. **共享密钥**: 使用 Diffie-Hellman 协议生成的初始共享密钥。
-2. **最终认证密钥**: 结合共享密钥和输入的密码生成的最终密钥。
-3. **消息认证码（MAC）**: 对发送的消息生成 MAC，并验证消息是否在传输过程中被篡改。
-
-输出示例如下：
+Example output:
 
 ```plaintext
 Shared secret successfully established.
-Theo's shared secret: 2
-Knew's shared secret: 2
+Theo's shared secret: 1
+Knew's shared secret: 1
 
 Password-authenticated shared secret successfully established.
-Theo's final secret: ebcf9d60aabc7d2f617519f01c50d79270891a6357d42fbbc7f861a64c8a2069
-Knew's final secret: ebcf9d60aabc7d2f617519f01c50d79270891a6357d42fbbc7f861a64c8a2069
+Random salt used (hex): 1d88a5b747ee9d515dafea62b0a1d850
+Theo's final secret: e7f6c011776e8db7cd330b54174fd76f7d0216b612387a5ffcfb81e6f0919683
+Knew's final secret: e7f6c011776e8db7cd330b54174fd76f7d0216b612387a5ffcfb81e6f0919683
 
-Generated MAC: 5f4dcc3b5aa765d61d8327deb882cf99
+Generated MAC: 729a804981a5cd8efebbb437bc4df7c7f33c24d97e990f81ca2197b942cc5038
 Message is verified and intact.
 ```
 
 ---
 
-### 5. 结果解释
+## 5. Result Explanation
 
-- **Shared Secret**: 表示 Theo 和 Knew 成功通过 Diffie-Hellman 协议生成了共享密钥。两个共享密钥的值应当相同。
-  
-- **Final Authenticated Secret**: 这是通过密码认证生成的最终共享密钥。Theo 和 Knew 生成的密钥应当相同。如果密钥相同，说明密钥交换和认证过程成功。
-
-- **Generated MAC**: 表示对消息生成的消息认证码（MAC）。该 MAC 可用于验证消息在传输过程中是否被篡改。
-
-- **Message Verification**: 如果 MAC 验证成功，说明消息未被篡改；否则提示可能的篡改。
+* **Shared Secret**: The initial secret calculated via Diffie-Hellman. Both parties should have the same value.
+* **Random Salt**: A random value used to salt the password before hashing, preventing precomputed attacks.
+* **Final Authenticated Secret**: Combines the shared secret and password hash, finalizing mutual authentication.
+* **Generated MAC**: The HMAC-SHA256 signature of the transmitted message using the authenticated secret as the key.
+* **Message Verification**: Confirms the received message has not been modified during transmission.
 
 ---
 
-### 6. 常见问题
+## 6. Frequently Asked Questions (FAQ)
 
-#### 1. **如果没有输入密码会怎样？**
-   - 程序将无法生成最终的认证密钥，认证过程将失败。
+### 1. What happens if the shared password is wrong?
 
-#### 2. **共享密钥不一致怎么办？**
-   - 请确保程序的所有部分都正确运行，尤其是密钥生成和交换的部分。如果问题持续存在，请检查你的输入数据和算法是否正确实现。
+The final authenticated secrets will not match, causing message verification to fail.
 
-#### 3. **可以使用自定义的 p 和 g 吗？**
-   - 可以。在代码中找到 `p` 和 `g` 的定义部分，并替换为你自己的参数。在实际应用中，建议使用足够大的素数 `p` 和合适的生成元 `g`。
+### 2. Can I provide my own prime number (`p`) and generator (`g`)?
 
----
+Yes. You can manually edit `p` and `g` values in the script.
+For real applications, you must use primes at least 2048 bits long.
 
-### 7. 注意事项
+### 3. Is the generated salt fixed?
 
-- **密码安全**: 确保共享的密码足够复杂，以防止被暴力破解。
-- **密钥安全**: 程序运行后生成的密钥应当妥善保管，不要泄露给未授权的人员。
-- **消息完整性**: 使用 MAC 功能可以确保消息未被篡改。如果验证失败，可能存在攻击行为。
+No. A new random salt is generated each time the program runs, enhancing security.
 
 ---
 
-### 8. 进一步扩展
+## 7. Important Notes
 
-此程序是一个基础版本，你可以在此基础上进行进一步扩展和改进，例如：
-
-- 使用更大的素数 `p` 和生成元 `g`，增强安全性。
-- 实现更复杂的 PAKE 协议，如 OPAQUE。
-- 添加加密和解密的功能，将共享密钥应用于实际的数据加密。
-- 使用更复杂的哈希函数或加密算法生成 MAC，以提高安全性。
+* **Use Strong Passwords**: Weak passwords can compromise security even if key exchange is secure.
+* **Randomness Matters**: The random salt adds vital security. Never reuse salts unless absolutely necessary.
+* **MAC Protection**: Always verify MACs before trusting any received message.
+* **Key Management**: Treat generated keys as sensitive materials. Do not expose them.
 
 ---
 
-### 9. 版本更新
-**版本 1.1**:  
+## 8. Future Enhancements
 
-- 更新说明  
+Potential improvements could include:
 
-**版本 1.2**: 
-- 降低重复率
-
-**版本 1.3**:  
-
-- 引入了消息认证码（MAC）功能，确保消息在传输过程中未被篡改。
-- 验证消息的完整性并防止篡改攻击。
+* Adopting standard Diffie-Hellman groups from RFC 3526 (e.g., 2048-bit MODP Group).
+* Supporting dynamic user input for passwords and messages.
+* Adding AES encryption using the authenticated secret as the symmetric key.
+* Implementing advanced PAKE protocols like SPAKE2 or OPAQUE for stronger password authentication.
 
 ---
 
-### 10. 联系方式
+## 9. Version History
 
-如有任何问题或建议，请联系作者 Ziyuan Wang。
+**Version 1.1**:
+
+* Initial documentation updates.
+
+**Version 1.2**:
+
+* Improved documentation structure and content.
+
+**Version 1.3**:
+
+* Added simple MAC generation and verification using SHA-256 (not HMAC).
+
+**Version 2.0**:
+
+* Introduced random salt generation (`os.urandom`).
+* Switched MAC generation to HMAC-SHA256 for robust message authentication.
+* Enhanced program security and modularity.
 
 ---
 
-**谢谢使用！**
+## 10. Contact Information
+
+For any questions, feedback, or contributions, please contact the author: **Ziyuan Wang**.
+
+---
+
+**Thank you for using this program!**
 
 ---

@@ -1,14 +1,24 @@
 import random
+import os
+import hmac
 from hashlib import sha256
 
 # Author: Ziyuan Wang
+# Version: 1.3 (enhanced with random salt and HMAC-based MAC)
 
-# Global prime number p and generator g for Diffie-Hellman
-# In practice, p should be a large prime number, and g should be a generator of the multiplicative group modulo p
-p = 23  # Example small prime (use a large prime in real applications)
-g = 5   # Example generator (use a suitable generator for the chosen prime)
+# ============================================================================
+# Global parameters for Diffie-Hellman key exchange
+# Note: In real-world applications, use a large (2048+ bit) prime p and a suitable generator g.
+# Here we keep small values for demonstration and readability.
+p = 23  # Example small prime (for demonstration only)
+g = 5   # Example generator (for demonstration only)
 
-# Function to generate a private key
+# ----------------------------------------------------------------------------
+# Function: generate_private_key
+# Purpose : Generate a random private key in the range [1, p-2]
+# Input   : p (prime modulus)
+# Output  : random integer serving as the private key
+# ----------------------------------------------------------------------------
 def generate_private_key(p):
     """
     Generates a random private key within the range [1, p-2].
@@ -17,7 +27,13 @@ def generate_private_key(p):
     """
     return random.randint(1, p - 2)
 
-# Function to generate a public key
+# ----------------------------------------------------------------------------
+# Function: generate_public_key
+# Purpose : Compute public key from private key, generator, and modulus
+# Formula : public_key = g^private_key mod p
+# Inputs  : private_key (int), g (generator), p (prime modulus)
+# Output  : public_key (int)
+# ----------------------------------------------------------------------------
 def generate_public_key(private_key, g, p):
     """
     Generates the public key using the private key, generator g, and prime p.
@@ -29,7 +45,13 @@ def generate_public_key(private_key, g, p):
     """
     return pow(g, private_key, p)
 
-# Function to compute the shared secret key
+# ----------------------------------------------------------------------------
+# Function: compute_shared_secret
+# Purpose : Derive shared secret using the other party's public key
+# Formula : shared_secret = their_public_key^your_private_key mod p
+# Inputs  : their_public_key (int), your_private_key (int), p (prime modulus)
+# Output  : shared_secret (int)
+# ----------------------------------------------------------------------------
 def compute_shared_secret(their_public_key, your_private_key, p):
     """
     Computes the shared secret using the other party's public key and your private key.
@@ -41,17 +63,74 @@ def compute_shared_secret(their_public_key, your_private_key, p):
     """
     return pow(their_public_key, your_private_key, p)
 
-# Function to generate a MAC for a given message
+# ============================================================================
+# Password-Authenticated Key Exchange (PAKE) helpers
+
+# ----------------------------------------------------------------------------
+# Generate a cryptographically secure random salt (hex-encoded)
+# Salt adds randomness to password hashing, preventing rainbow table attacks.
+# Salt should be stored or transmitted alongside the hash.
+salt = os.urandom(16).hex()  # 16 random bytes -> 32-character hex string
+
+# ----------------------------------------------------------------------------
+# Function: generate_password_hash
+# Purpose : Hash a password combined with a salt using SHA-256
+# Inputs  : password (str), salt (str, hex-encoded random value)
+# Output  : integer representation of the hash (for modular operations)
+# ----------------------------------------------------------------------------
+def generate_password_hash(password, salt):
+    """
+    Generates a hash of the password combined with a salt using SHA-256.
+    :param password: The shared password between Theo and Knew.
+    :param salt: A salt value to add randomness to the password hash.
+    :return: A hashed value derived from the password and salt.
+    """
+    hash_bytes = sha256((password + salt).encode()).hexdigest()
+    return int(hash_bytes, 16)
+
+# ----------------------------------------------------------------------------
+# Function: combine_with_password
+# Purpose : Combine shared secret and password hash into a final authenticated key
+# Method  : (shared_secret + password_hash) mod p, then hash result with SHA-256
+# Inputs  : shared_secret (int), password_hash (int)
+# Output  : hex-encoded SHA-256 digest (str)
+# ----------------------------------------------------------------------------
+def combine_with_password(shared_secret, password_hash):
+    """
+    Combines the shared secret with the password hash to generate a final authenticated key.
+    The combination is done using modular addition followed by hashing.
+    :param shared_secret: The shared secret established through Diffie-Hellman.
+    :param password_hash: The hash of the shared password.
+    :return: The final combined key as a SHA-256 hash.
+    """
+    combined_value = (shared_secret + password_hash) % p
+    return sha256(str(combined_value).encode()).hexdigest()
+
+# ============================================================================
+# Message Authentication Code (MAC) functions using HMAC-SHA256
+
+# ----------------------------------------------------------------------------
+# Function: generate_mac
+# Purpose : Create a message authentication code (MAC) for integrity and authenticity
+# Method  : HMAC with shared key and SHA-256
+# Inputs  : message (str), key (str, final authenticated secret)
+# Output  : hex-encoded HMAC-SHA256 digest (str)
+# ----------------------------------------------------------------------------
 def generate_mac(message, key):
     """
-    Generates a MAC for a given message using a shared key.
+    Generates a MAC for a given message using HMAC-SHA256.
     :param message: The message to be authenticated.
     :param key: The shared key used to generate the MAC.
     :return: The generated MAC.
     """
-    return sha256((message + key).encode()).hexdigest()
+    return hmac.new(key.encode(), message.encode(), sha256).hexdigest()
 
-# Function to verify the MAC of a received message
+# ----------------------------------------------------------------------------
+# Function: verify_mac
+# Purpose : Verify that a received MAC matches the computed HMAC
+# Inputs  : received_message (str), received_mac (str), key (str)
+# Output  : True if valid, False otherwise
+# ----------------------------------------------------------------------------
 def verify_mac(received_message, received_mac, key):
     """
     Verifies the MAC of a received message.
@@ -60,10 +139,11 @@ def verify_mac(received_message, received_mac, key):
     :param key: The shared key used to verify the MAC.
     :return: True if MAC is valid, False otherwise.
     """
-    generated_mac = generate_mac(received_message, key)
-    return generated_mac == received_mac
+    expected_mac = generate_mac(received_message, key)
+    return hmac.compare_digest(expected_mac, received_mac)
 
-# Example: Theo and Knew establish a shared secret using Diffie-Hellman
+# ============================================================================
+# Example Workflow: Theo <-> Knew
 
 # Step 1: Theo and Knew generate their private keys
 theo_private_key = generate_private_key(p)
@@ -73,7 +153,7 @@ knew_private_key = generate_private_key(p)
 theo_public_key = generate_public_key(theo_private_key, g, p)
 knew_public_key = generate_public_key(knew_private_key, g, p)
 
-# Step 3: Theo and Knew exchange their public keys and compute the shared secret
+# Step 3: Theo and Knew exchange public keys and compute the shared secret
 theo_shared_secret = compute_shared_secret(knew_public_key, theo_private_key, p)
 knew_shared_secret = compute_shared_secret(theo_public_key, knew_private_key, p)
 
@@ -83,63 +163,31 @@ print("Shared secret successfully established.")
 print(f"Theo's shared secret: {theo_shared_secret}")
 print(f"Knew's shared secret: {knew_shared_secret}")
 
-# Extend to Password Authenticated Key Exchange (PAKE) using a shared password
-
-# Assume Theo and Knew have a pre-shared password
+# Step 5: PAKE - derive final authenticated key using shared password
 shared_password = "securepassword123"
-
-# Function to generate a hash of the password combined with a salt
-def generate_password_hash(password, salt):
-    """
-    Generates a hash of the password combined with a salt using SHA-256.
-    :param password: The shared password between Theo and Knew.
-    :param salt: A salt value to add randomness to the password hash.
-    :return: A hashed value derived from the password and salt.
-    """
-    return int(sha256((password + salt).encode()).hexdigest(), 16)
-
-# Simple salt value for demonstration purposes (in practice, use a randomly generated salt)
-salt = "random_salt"
-
-# Generate a hash of the shared password with the salt
 password_hash = generate_password_hash(shared_password, salt)
 
-# Function to combine the shared secret with the password hash
-def combine_with_password(shared_secret, password_hash):
-    """
-    Combines the shared secret with the password hash to generate a final authenticated key.
-    The combination is done using modular addition followed by hashing.
-    :param shared_secret: The shared secret established through Diffie-Hellman.
-    :param password_hash: The hash of the shared password.
-    :return: The final combined key as a SHA-256 hash.
-    """
-    combined = (shared_secret + password_hash) % p
-    return sha256(str(combined).encode()).hexdigest()
-
-# Step 5: Theo and Knew compute their final authenticated key using the password
 theo_final_secret = combine_with_password(theo_shared_secret, password_hash)
 knew_final_secret = combine_with_password(knew_shared_secret, password_hash)
 
-# Step 6: Verify that both final secrets are identical
-assert theo_final_secret == knew_final_secret, "Final shared secrets do not match!"
+# Step 6: Verify that both final secrets match
+assert theo_final_secret == knew_final_secret, "Final authenticated secrets do not match!"
 print("Password-authenticated shared secret successfully established.")
+print(f"Random salt used (hex): {salt}")
 print(f"Theo's final secret: {theo_final_secret}")
 print(f"Knew's final secret: {knew_final_secret}")
 
 # Step 7: Use the final authenticated key to generate and verify a MAC for a message
-# Example message
 message = "This is a secure message."
-
-# Generate a MAC for the message
 mac = generate_mac(message, theo_final_secret)
 print(f"Generated MAC: {mac}")
 
 # Simulate sending the message and MAC to Knew
-received_message = message  # Assume the message is received correctly
-received_mac = mac  # Assume the MAC is received correctly
+received_message = message
+received_mac = mac
 
-# Knew verifies the MAC
+# Step 8: Knew verifies the MAC
 if verify_mac(received_message, received_mac, knew_final_secret):
     print("Message is verified and intact.")
 else:
-    print("Message verification failed! Possible modification detected.")
+    print("Message verification failed! Possible tampering detected.")
