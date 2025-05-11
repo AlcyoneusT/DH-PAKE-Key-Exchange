@@ -3,7 +3,7 @@ import os
 import hmac
 from hashlib import sha256
 
-# Author: Ziyuan Wang
+# Author: AlcyoneusT
 # Version: 1.3 (enhanced with random salt and HMAC-based MAC)
 
 # ============================================================================

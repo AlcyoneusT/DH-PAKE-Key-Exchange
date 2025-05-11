@@ -5,7 +5,7 @@
 
 **Program Name**: Key Exchange Protocol Based on Diffie-Hellman and PAKE
 
-**Author**: Ziyuan Wang
+**Author**: AlcyoneusT
 
 **Version**: 2.0
 
@@ -161,7 +161,7 @@ Potential improvements could include:
 
 ## 10. Contact Information
 
-For any questions, feedback, or contributions, please contact the author: **Ziyuan Wang**.
+For any questions, feedback, or contributions, please contact the author: **AlcyoneusT**.
 
 ---
 
